@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--标签栏 字体颜色-->
+    <attr name="titleTxtColor" format="reference"/>
+    <attr name="toolbarHeight" format="dimension"/>
+</resources>
