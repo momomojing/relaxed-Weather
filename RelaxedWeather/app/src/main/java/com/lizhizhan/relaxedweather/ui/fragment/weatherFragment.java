@@ -5,11 +5,12 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Message;
 import android.support.annotation.Nullable;
 import android.support.design.widget.Snackbar;
 import android.support.v4.app.Fragment;
 import android.support.v4.widget.SwipeRefreshLayout;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -19,14 +20,13 @@ import android.widget.RelativeLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
 
+import com.lizhizhan.relaxedweather.MainActivity;
 import com.lizhizhan.relaxedweather.R;
 import com.lizhizhan.relaxedweather.api.getWeather;
 import com.lizhizhan.relaxedweather.bean.NowWeatherBean;
 import com.lizhizhan.relaxedweather.bean.WeatherBean;
 import com.lizhizhan.relaxedweather.golbal.WeatherApplication;
-import com.lizhizhan.relaxedweather.manager.mWeatherManager;
 import com.lizhizhan.relaxedweather.utils.Logger;
-import com.lizhizhan.relaxedweather.utils.NetworkUtil;
 import com.squareup.picasso.Picasso;
 
 import java.util.List;
@@ -35,21 +35,21 @@ import butterknife.ButterKnife;
 import butterknife.InjectView;
 
 /**
- * Created by lizhizhan on 2017/1/11.
+ * Created by lizhizhan on 2017/3/20.
  */
 
-public class weatherFragment extends Fragment implements SwipeRefreshLayout.OnRefreshListener {
+public class weatherFragment extends Fragment {
 
+    private static final int SUCCESS = 1;
+    private static final int ERROR = 0;
     @InjectView(R.id.tv)
     TextView tv;
     @InjectView(R.id.tmp)
     TextView tmp;
-    @InjectView(R.id.cond)
-    TextView cond;
-    @InjectView(R.id.refresh_layout)
-    SwipeRefreshLayout refreshLayout;
     @InjectView(R.id.iv_condIcon)
     ImageView ivCondIcon;
+    @InjectView(R.id.cond)
+    TextView cond;
     @InjectView(R.id.Htmp)
     TextView Htmp;
     @InjectView(R.id.Ltmp)
@@ -78,8 +78,6 @@ public class weatherFragment extends Fragment implements SwipeRefreshLayout.OnRe
     TextView tvComf;
     @InjectView(R.id.ll_more)
     LinearLayout llMore;
-    @InjectView(R.id.nScrollView)
-    ScrollView nScrollView;
     @InjectView(R.id.iv_condIconToday)
     ImageView ivCondIconToday;
     @InjectView(R.id.tv_toHtmp)
@@ -100,190 +98,138 @@ public class weatherFragment extends Fragment implements SwipeRefreshLayout.OnRe
     TextView tvAfterTomLtmp;
     @InjectView(R.id.ll_furture)
     LinearLayout llFurture;
+    @InjectView(R.id.nScrollView)
+    ScrollView nScrollView;
+    @InjectView(R.id.refresh_layout)
+    SwipeRefreshLayout refreshLayout;
     private Context context;
-    private View view;
+    private List<WeatherBean.HeWeather5Bean> heWeather5;
     private String city;
+    private String condString;
+    String base = "http://files.heweather.com/cond_icon/";
 
     private boolean isFirstEnter;
     private SharedPreferences Confing;
     private int measuredHeight;
     private RelativeLayout.LayoutParams llMoreLayoutParams;
-    String base = "http://files.heweather.com/cond_icon/";
-
-    //控件是否已经初始化
-    private boolean isCreateView = false;
-    //是否已经加载过数据
-    private boolean isLoadData = false;
-    private String condString = "";
-
+    private MainActivity activity;
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        activity = (MainActivity) getActivity();
+        Logger.e("调用新的fragment");
+        context = getContext();
         Bundle bundle = getArguments();
         city = bundle.getString("city");
-        context = getContext();
+        Logger.e("当前城市是" + city);
     }
 
     @Nullable
     @Override
     public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        //避免切换Fragment 的时候重绘UI 。失去数据
-        if (view == null) {
-            view = inflater.inflate(R.layout.fragment_content, null);
-        }
-        // 缓存的viewiew需要判断是否已经被加过parent，
-        // 如果有parent需要从parent删除，要不然会发生这个view已经有parent的错误。
-        ViewGroup parent = (ViewGroup) view.getParent();
-        if (parent != null) {
-            parent.removeView(view);
-        }
+        View view = inflater.inflate(R.layout.fragment_content, null);
         ButterKnife.inject(this, view);
-        isCreateView = true;
         return view;
-    }
-
-    //第一个之后的Fragment 会从这里加载数据
-    @Override
-    public void setUserVisibleHint(boolean isVisibleToUser) {
-        super.setUserVisibleHint(isVisibleToUser);
-        //界面对用户可见时候
-        if (isVisibleToUser && isCreateView) {
-            lazyLoad();
-        }
-    }
-
-
-    /**
-     * 懒加载Fragment 的 UI 对用户可见时才加载数据
-     * 可见时候，观察者模式调用，更新天气状态。根据天气状态更改运用背景
-     */
-    private void lazyLoad() {
-        //如果没有加载过就加载，否则就不再加载了
-        if (!isLoadData) {
-            //加载数据操作
-            initWeatherData(city);
-            isLoadData = true;
-        } else {
-            //更新新背景图关键字,和关键ID
-            mWeatherManager mWM = mWeatherManager.getInstance();
-            mWM.change(condString, city);
-        }
-
-    }
-
-
-    @Override
-    public void onActivityCreated(@Nullable Bundle savedInstanceState) {
-        super.onActivityCreated(savedInstanceState);
-        //第一个fragment会调用
-        if (getUserVisibleHint()) {
-            lazyLoad();
-        }
     }
 
     @Override
     public void onViewCreated(View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-        refreshLayout.setOnRefreshListener(this);
-        tv.setText(city);
     }
 
-    /**
-     * 获得天气
-     *
-     * @param city
-     */
-    private void initWeatherData(String city) {
+    private boolean isLoaded = false;
 
-        new getWeather(city, WeatherApplication.WeatherType_Total) {
+    @Override
+    public void onActivityCreated(@Nullable Bundle savedInstanceState) {
+        super.onActivityCreated(savedInstanceState);
+        if (getUserVisibleHint()) {
+            lazyLoad();
+        }
+    }
+
+    public void lazyLoad() {
+        if (heWeather5 == null) {
+            onLoad();
+        } else {
+            initView(heWeather5);
+            if (!isLoaded) {
+                onLoad();
+            } else if (heWeather5 != null) {
+                initView(heWeather5);
+            }
+        }
+
+    }
+
+    public void onLoad() {
+        isLoaded = true;
+        Logger.e("当前城市是" + city);
+        getWeather getWeather = new getWeather(city, WeatherApplication.WeatherType_Total) {
             @Override
             protected void onTotalWeatherLoad(WeatherBean weatherBean) {
-                stopRefresh();
-                WeatherBean.HeWeather5Bean heWeather5Bean = weatherBean.getHeWeather5().get(0);
-                initView(heWeather5Bean);
+                heWeather5 = weatherBean.getHeWeather5();
+                if (heWeather5 != null) {
+                    initView(heWeather5);
+                    Message message = new Message();
+                    //                    message.setData();
+                    message.what = SUCCESS;
+                    handler.sendMessage(message);
+                }
             }
 
             @Override
             public void onNowDataLoad(NowWeatherBean nowWeatherBean) {
-                stopRefresh();
+
             }
 
             @Override
             public void error() {
-                Logger.e("errorerrorerrorerrorerrorerror");
-                stopRefresh();
-                //提示没网。连接出错
-                Snackbar.make(refreshLayout, "没网噢", Snackbar.LENGTH_SHORT).setAction("知道了", new View.OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-
-                    }
-                }).show();
+                Message message = new Message();
+                //                    message.setData();
+                message.what = ERROR;
+                handler.sendMessage(message);
             }
         };
-
-
     }
 
-    /**
-     * 更新天气状况
-     */
-    @Override
-    public void onRefresh() {
-        if (NetworkUtil.isConnected(context)) {
-            initWeatherData(city);
-        } else {
-            stopRefresh();
-            Snackbar.make(refreshLayout, "检测到没网", Snackbar.LENGTH_SHORT).setAction("知道了", new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-
-                }
-            }).show();
-
+    protected Handler handler = new Handler(new Handler.Callback() {
+        @Override
+        public boolean handleMessage(Message msg) {
+            switch (msg.what) {
+                case SUCCESS:
+                    Snackbar.make(refreshLayout, "刷新成功", Snackbar.LENGTH_LONG).show();
+                    refreshLayout.setRefreshing(false);
+                    break;
+                case ERROR:
+                    Snackbar.make(refreshLayout, "刷新失败", Snackbar.LENGTH_LONG).show();
+                    refreshLayout.setRefreshing(false);
+                    break;
+            }
+            return false;
         }
-    }
+    });
 
     /**
-     * 停止刷新
-     */
-    protected void stopRefresh() {
-        if (refreshLayout != null && refreshLayout.isRefreshing()) {
-            refreshLayout.setRefreshing(false);
-            Log.e("tag", "stopRefresh: ");
-        }
-        //延迟1秒
-        //        refreshLayout.postDelayed(new Runnable() {
-        //            @Override
-        //            public void run() {
-        //                if (refreshLayout != null && refreshLayout.isRefreshing()) {
-        //                    refreshLayout.setRefreshing(false);
-        //                    Log.e("tag", "stopRefresh: ");
-        //                }
-        //            }
-        //        }, 1000);
-    }
-
-    /**
-     * 获得天气后更新视图
+     * 更新视图
      *
-     * @param heWeather5Bean
+     * @param weatherBean
      */
-    private void initView(WeatherBean.HeWeather5Bean heWeather5Bean) {
-
+    private void initView(List<WeatherBean.HeWeather5Bean> weatherBean) {
+        WeatherBean.HeWeather5Bean heWeather5Bean = weatherBean.get(0);
         final WeatherBean.HeWeather5Bean.NowBean now = heWeather5Bean.getNow();
         List<WeatherBean.HeWeather5Bean.DailyForecastBean> dailyForecast = heWeather5Bean.getDaily_forecast();
-        Logger.e("更新UI");
+        Logger.e("更新UI" + city);
         Logger.e(heWeather5Bean.getBasic().getCity());
+
+        tv.setText(heWeather5Bean.getBasic().getCity());
+
         tmp.setText(now.getTmp());
 
         condString = now.getCond().getTxt();
-        int cod1 = Integer.parseInt(now.getCond().getCode());
-        cond.setText(condString);
 
-        mWeatherManager mWM = mWeatherManager.getInstance();
-        mWM.change(condString, city);
+        cond.setText(condString);
+        activity.setCondChanged(condString);
 
         WeatherBean.HeWeather5Bean.DailyForecastBean dailyForecastBean = dailyForecast.get(0);
         WeatherBean.HeWeather5Bean.DailyForecastBean.AstroBean astro = dailyForecastBean.getAstro();
@@ -291,7 +237,7 @@ public class weatherFragment extends Fragment implements SwipeRefreshLayout.OnRe
         tvSr.setText("日出时间：" + astro.getSr());
         tvSs.setText("日落时间：" + astro.getSs());
         //体感温度
-        String fl = now.getFl();
+        final String fl = now.getFl();
         tvFl.setText("体感温度:" + fl + "°");
 
         //风速
@@ -321,7 +267,16 @@ public class weatherFragment extends Fragment implements SwipeRefreshLayout.OnRe
         tvMore.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                Logger.e("点击了");
                 toggle();
+            }
+        });
+
+        refreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
+            @Override
+            public void onRefresh() {
+                Logger.e("刷新啊啊啊啊啊啊啊啊啊啊啊");
+                onLoad();
             }
         });
     }
@@ -355,7 +310,7 @@ public class weatherFragment extends Fragment implements SwipeRefreshLayout.OnRe
     private void toggle() {
         ValueAnimator valueAnimator = null;
         if (isOpenMore) {
-            Drawable drawable = getResources().getDrawable(R.drawable.arrow_down);
+            Drawable drawable = context.getResources().getDrawable(R.drawable.arrow_down);
             drawable.setBounds(0, 0, drawable.getMinimumWidth(), drawable.getMinimumHeight());
             tvMore.setCompoundDrawables(drawable, null, null, null);
             isOpenMore = false;
@@ -363,7 +318,7 @@ public class weatherFragment extends Fragment implements SwipeRefreshLayout.OnRe
             valueAnimator = ValueAnimator.ofInt(measuredHeight, 0);
             llMore.setVisibility(View.INVISIBLE);
         } else {
-            Drawable drawable = getResources().getDrawable(R.drawable.arrow_up);
+            Drawable drawable = context.getResources().getDrawable(R.drawable.arrow_up);
             drawable.setBounds(0, 0, drawable.getMinimumWidth(), drawable.getMinimumHeight());
             tvMore.setCompoundDrawables(drawable, null, null, null);
             isOpenMore = true;
@@ -386,12 +341,9 @@ public class weatherFragment extends Fragment implements SwipeRefreshLayout.OnRe
         valueAnimator.start();
     }
 
-
     @Override
     public void onDestroyView() {
         super.onDestroyView();
         ButterKnife.reset(this);
     }
-
-
 }

@@ -47,6 +47,7 @@ public class ServiceFactory {
     public <S> S createService(Class<S> serviceClass) {
         String baseUrl = "";
         try {
+            //反射
             Field field1 = serviceClass.getField("BASE_URL");
             baseUrl = (String) field1.get(serviceClass);
         } catch (NoSuchFieldException e) {

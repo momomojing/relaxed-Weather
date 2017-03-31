@@ -5,6 +5,8 @@ import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.text.TextUtils;
 import android.view.WindowManager;
+import android.view.animation.Animation;
+import android.view.animation.ScaleAnimation;
 import android.widget.TextView;
 
 import com.amap.api.location.AMapLocation;
@@ -42,7 +44,6 @@ public class SplashActivity extends CheckPermissionsActivity {
     @InjectView(R.id.enter_main)
     TextView enterMain;
     private Subscription subscribe;
-    private boolean isFirstEnter;
 
 
     @Override
@@ -52,53 +53,38 @@ public class SplashActivity extends CheckPermissionsActivity {
                 WindowManager.LayoutParams.FLAG_FULLSCREEN);
         setContentView(R.layout.activity_splash);
         ButterKnife.inject(this);
-        isFirstEnter = PrefUitl.getBoolean(this, "is_First_Enter", true);
-        if (!isFirstEnter) {
-            startMain();
-        }
+
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();   //缺少权限时，进入权限设置页面
+        //        isFirstEnter = PrefUitl.getBoolean(this, "is_First_Enter", true);
+        //        if (!isFirstEnter) {
+        //            Logger.e("定位");
+        //            initLocation();
+        //        }
         //复制各省市信息数据库
         copyDB("city.db");
         //        Logger.e("定位");
         initLocation();
     }
 
-    //    private void initDia() {
-    //        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-    //        builder.setTitle(R.string.notifyTitle);
-    //        builder.setMessage("是否获取定位信息");
-    //        // 拒绝, 退出应用
-    //        builder.setNegativeButton(R.string.cancel,
-    //                new DialogInterface.OnClickListener() {
-    //                    @Override
-    //                    public void onClick(DialogInterface dialog, int which) {
-    //                        startMain();
-    //                    }
-    //                });
-    //
-    //        builder.setPositiveButton("获取",
-    //                new DialogInterface.OnClickListener() {
-    //                    @Override
-    //                    public void onClick(DialogInterface dialog, int which) {
-    //                        getLocation();
-    //                    }
-    //                });
-    //
-    //        builder.setCancelable(false);
-    //        builder.show();
-    //        PrefUitl.setBoolean(this, "is_First_Enter", false);
-    //    }
-
     @Override
-    protected void onResume() {
-        super.onResume();   //缺少权限时，进入权限设置页面
-        //        getLocation();
-        //        startMain();
+    protected void noPermissionsRequest() {
+        startMain();
     }
 
     @Override
-    public int checkSelfPermission(String permission) {
-        return super.checkSelfPermission(permission);
+    public void startLocationWork() {
+        //根据控件的选择，重新设置定位参数
+        //        resetOption();
+        // 设置定位参数
+        //        locationClient.setLocationOption(locationOption);
+        // 启动定位
+        locationClient.startLocation();
     }
+
 
     /**
      * 复制assets里的数据库
@@ -182,6 +168,7 @@ public class SplashActivity extends CheckPermissionsActivity {
                 Logger.e("定位失败，loc is null");
 
             }
+            startMain();
         }
     };
 
@@ -249,22 +236,17 @@ public class SplashActivity extends CheckPermissionsActivity {
     }
 
     /**
-     * 开始定位
-     *
-     * @author hongming.wang
-     * @since 2.8.0
+     * 进入首页
      */
-    private void startLocation() {
-        //根据控件的选择，重新设置定位参数
-        //        resetOption();
-        // 设置定位参数
-        //        locationClient.setLocationOption(locationOption);
-        // 启动定位
-        locationClient.startLocation();
-
-    }
-
     private void startMain() {
+
+        ScaleAnimation animation = new ScaleAnimation(1, 0f, 1, 0f,
+                Animation.RELATIVE_TO_SELF, 0.5f, Animation.RELATIVE_TO_SELF, 0.5f);
+        animation.setDuration(1000);
+        enterMain.setAnimation(animation);
+        animation.setFillAfter(true);
+        animation.start();
+
         subscribe = Observable.timer(1, TimeUnit.SECONDS).subscribe(new Action1<Long>() {
             @Override
             public void call(Long aLong) {
@@ -315,7 +297,7 @@ public class SplashActivity extends CheckPermissionsActivity {
 
     @OnClick(R.id.enter_main)
     public void onClick() {
-        startLocation();
+        startLocationWork();
         startMain();
     }
 }

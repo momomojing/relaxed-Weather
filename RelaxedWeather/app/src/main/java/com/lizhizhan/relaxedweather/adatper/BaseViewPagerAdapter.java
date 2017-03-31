@@ -6,7 +6,11 @@ import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentPagerAdapter;
 
+import com.lizhizhan.relaxedweather.ui.fragment.weatherFragment;
+
 import java.util.ArrayList;
+
+import static com.lizhizhan.relaxedweather.golbal.WeatherApplication.fragmentList;
 
 /**
  * Created by lizhizhan on 2017/1/11.
@@ -30,7 +34,9 @@ public class BaseViewPagerAdapter extends FragmentPagerAdapter {
     @Override
     public Fragment getItem(int position) {
         FragmentInfo fragmentInfo = fragments.get(position);
-        return Fragment.instantiate(context, fragmentInfo.getClazz().getName(), fragmentInfo.getBundle());
+        Fragment fragment = Fragment.instantiate(context, fragmentInfo.getClazz().getName(), fragmentInfo.getBundle());
+        fragmentList.add(position, (weatherFragment) fragment);
+        return fragment;
     }
 
     @Override

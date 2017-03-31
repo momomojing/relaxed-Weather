@@ -24,25 +24,24 @@ import com.facebook.drawee.backends.pipeline.Fresco;
 import com.facebook.drawee.interfaces.DraweeController;
 import com.facebook.drawee.view.SimpleDraweeView;
 import com.lizhizhan.relaxedweather.adatper.BaseViewPagerAdapter;
-import com.lizhizhan.relaxedweather.api.getWeather;
-import com.lizhizhan.relaxedweather.bean.NowWeatherBean;
-import com.lizhizhan.relaxedweather.bean.WeatherBean;
 import com.lizhizhan.relaxedweather.db.CurrentCityDao;
 import com.lizhizhan.relaxedweather.golbal.WeatherApplication;
 import com.lizhizhan.relaxedweather.ui.activity.AchieveActivity;
+import com.lizhizhan.relaxedweather.ui.fragment.baseFragment;
 import com.lizhizhan.relaxedweather.ui.fragment.leftMenuFragment;
-import com.lizhizhan.relaxedweather.ui.fragment.weatherFragment2;
+import com.lizhizhan.relaxedweather.ui.fragment.weatherFragment;
 import com.lizhizhan.relaxedweather.utils.Logger;
 import com.lizhizhan.relaxedweather.utils.PrefUitl;
 import com.lizhizhan.relaxedweather.utils.UIUtils;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 
 import butterknife.ButterKnife;
 import butterknife.InjectView;
 
 import static com.lizhizhan.relaxedweather.golbal.WeatherApplication.CreatNewWeatherPager;
-import static com.lizhizhan.relaxedweather.golbal.WeatherApplication.WeatherType_NOW;
+import static com.lizhizhan.relaxedweather.golbal.WeatherApplication.fragmentList;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -71,6 +70,7 @@ public class MainActivity extends AppCompatActivity {
     private BaseViewPagerAdapter baseViewPagerAdapter;
     private String lastCond = "";
     private Uri uri2;
+    private static HashMap<String, baseFragment> mFragmentMap = new HashMap<String, baseFragment>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -136,20 +136,21 @@ public class MainActivity extends AppCompatActivity {
 
             //       baseViewPagerAdapter.addPager();
             for (int i = 0; i < city.size(); i++) {
-                weatherBundle = getBundle(city.get(i));
-                baseViewPagerAdapter.addPager(weatherFragment2.class, weatherBundle);
+                weatherBundle = new Bundle();
+                weatherBundle.putString("city", city.get(i));
+                Logger.e("创建Fragment" + city.get(i));
+
+                baseViewPagerAdapter.addPager(weatherFragment.class, weatherBundle);
+
             }
             vpWeather.setAdapter(baseViewPagerAdapter);
-
-            //第一页面的加载数据
-            weatherFragment2 fragment = (weatherFragment2) baseViewPagerAdapter.getItem(0);
             //            fragment.getDate("厦门");
 
             //限制0没用，默认为1 。
-            vpWeather.setOffscreenPageLimit(0);
+            //            vpWeather.setOffscreenPageLimit(0);
 
             //默认获取第一页的天气，更新背景
-            getNowCond(city.get(0));
+            //            getNowCond(city.get(0));
 
             if (addNewCity != null) {
                 //跳转到新添加的页面
@@ -157,7 +158,7 @@ public class MainActivity extends AppCompatActivity {
                 int currentItem = vpWeather.getCurrentItem();
 
                 //新添加的天气，更新背景
-                getNowCond(addNewCity);
+                //                getNowCond(addNewCity);
 
                 //添加小白点
                 initPoint(city.size(), currentItem);
@@ -182,12 +183,10 @@ public class MainActivity extends AppCompatActivity {
                 @Override
                 public void onPageSelected(int position) {
 
-                    getNowCond(city.get(position));
 
-
-                    weatherFragment2 fragment = (weatherFragment2) baseViewPagerAdapter.getItem(position);
-                    //                    fragment.getDate("厦门");
-
+                    weatherFragment fragment = fragmentList.get(position);
+//                    fragment.onLoad();
+                    fragment.lazyLoad();
                     conterTitleTxt.setText(city.get(position));
                     //当前所在页面小白点设置为白色的
                     ImageView point = (ImageView) llPoint.getChildAt(position);
@@ -211,28 +210,6 @@ public class MainActivity extends AppCompatActivity {
             intent.putExtra("category", CreatNewWeatherPager);
             startActivity(intent);
         }
-    }
-
-    private void getNowCond(String city) {
-        new getWeather(city, WeatherType_NOW) {
-            @Override
-            protected void onTotalWeatherLoad(WeatherBean weatherBean) {
-
-            }
-
-            @Override
-            public void onNowDataLoad(NowWeatherBean nowWeatherBean) {
-                //根据天气更新当前背景色
-                String cond = nowWeatherBean.getHeWeather5().get(0).getNow().getCond().getTxt();
-                Logger.e("MainAvtivity 222 天气啊 " + cond);
-                initBgPic(cond);
-            }
-
-            @Override
-            public void error() {
-
-            }
-        };
     }
 
     /**
@@ -350,5 +327,13 @@ public class MainActivity extends AppCompatActivity {
         return super.onKeyDown(keyCode, event);
     }
 
-
+    /**
+     * 得到天气变化的回调
+     *
+     * @param condChanged
+     */
+    public void setCondChanged(String condChanged) {
+        Logger.e("主页面得到天气变化" + condChanged);
+        initBgPic(condChanged);
+    }
 }

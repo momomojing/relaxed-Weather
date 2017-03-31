@@ -5,8 +5,10 @@ import android.os.Environment;
 import android.os.Handler;
 
 import com.facebook.drawee.backends.pipeline.Fresco;
+import com.lizhizhan.relaxedweather.ui.fragment.weatherFragment;
 
 import java.io.File;
+import java.util.ArrayList;
 
 /**
  * Created by lizhizhan on 2017/1/10.
@@ -17,6 +19,8 @@ public class WeatherApplication extends Application {
     public static String WeatherType_NOW = "NOW";
     public static String WeatherType_Total = "TOTAL";
     public static String WeatherType_ALL = "ALL";
+
+    public static ArrayList<weatherFragment> fragmentList = new ArrayList<weatherFragment>();
 
     public static int CreatNewWeatherPager = 0;
 

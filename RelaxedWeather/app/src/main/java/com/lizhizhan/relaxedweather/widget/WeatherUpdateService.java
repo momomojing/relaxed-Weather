@@ -53,6 +53,11 @@ public class WeatherUpdateService extends Service {
     }
 
     @Override
+    public int onStartCommand(Intent intent, int flags, int startId) {
+        return super.onStartCommand(intent, flags, startId);
+    }
+
+    @Override
     public void onCreate() {
         super.onCreate();
         CurrentCityDao currentCityDao = new CurrentCityDao(WeatherApplication.getInstance());
@@ -123,7 +128,7 @@ public class WeatherUpdateService extends Service {
     private void updateWeather(NowWeatherBean weatherBean) {
         String cond = weatherBean.getHeWeather5().get(0).getNow().getCond().getTxt();
         String tmp = weatherBean.getHeWeather5().get(0).getNow().getTmp();
-        Logger.e("更新天气更新天气更新天气更新天气更新天气" + firstCity);
+        Logger.e("桌面小部件更新天气" + firstCity);
         views.setTextViewText(R.id.tv_city_name, firstCity);
         views.setTextViewText(R.id.tv_cond, cond);
         views.setTextViewText(R.id.tv_tmp, tmp + "°");
@@ -134,9 +139,5 @@ public class WeatherUpdateService extends Service {
         ComponentName provider = new ComponentName(getApplicationContext(), WeatherWidget.class);
         // 更新桌面
         appWidgetManager.updateAppWidget(provider, views);
-    }
-
-    private void updateTime() {
-
     }
 }

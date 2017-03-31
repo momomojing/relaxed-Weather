@@ -2,6 +2,7 @@ package com.lizhizhan.relaxedweather.db;
 
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
+import android.os.Bundle;
 
 import com.lizhizhan.relaxedweather.bean.CityInfos;
 import com.lizhizhan.relaxedweather.utils.StringUtils;
@@ -33,6 +34,10 @@ public class CityDao {
                 String province = cursor.getString(1);
                 String city = cursor.getString(2);
                 String firstpy = cursor.getString(6);
+
+                Bundle extras = cursor.getExtras();
+                boolean xxx = extras.getBoolean("XXX");
+
                 CityInfos cityInfos = new CityInfos();
                 cityInfos.setFirstpy(firstpy);
                 cityInfos.setProvince(province);

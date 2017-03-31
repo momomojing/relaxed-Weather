@@ -1,6 +1,10 @@
 package com.lizhizhan.relaxedweather.ui.fragment;
 
+import android.view.View;
+
 import com.lizhizhan.relaxedweather.R;
+import com.lizhizhan.relaxedweather.ui.view.LoadingPage;
+import com.lizhizhan.relaxedweather.utils.UIUtils;
 
 /**
  * 添加城市
@@ -9,13 +13,14 @@ import com.lizhizhan.relaxedweather.R;
 
 public class aboutFragment extends baseFragment {
     @Override
-    protected void lazyLoad() {
-
+    public View OnCreatSuccessView() {
+        View view = UIUtils.inflate(R.layout.about_fragment);
+        return view;
     }
 
     @Override
-    public Integer getRealViewID() {
-        return R.layout.about_fragment;
+    public LoadingPage.ResultState onLoad() {
+        return LoadingPage.ResultState.STATE_SUCCESS;
     }
 
 }

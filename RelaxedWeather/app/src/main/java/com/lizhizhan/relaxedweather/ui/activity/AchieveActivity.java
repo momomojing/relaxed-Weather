@@ -109,7 +109,7 @@ public class AchieveActivity extends AppCompatActivity {
                     bundle.putString("city", "北京");
                     break;
                 case 1:
-                    //设置
+                    //地点
                     conterTitleTxt.setText("地点");
                     fragment = new citysFragment();
                     break;

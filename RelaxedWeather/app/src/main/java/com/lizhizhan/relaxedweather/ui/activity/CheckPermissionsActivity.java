@@ -10,6 +10,7 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.provider.Settings;
+import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
@@ -24,7 +25,7 @@ import java.util.List;
  * 继承了Activity，实现Android6.0的运行时权限检测
  * 需要进行运行时权限检测的Activity可以继承这个类
  */
-public class CheckPermissionsActivity extends AppCompatActivity
+public abstract class CheckPermissionsActivity extends AppCompatActivity
         implements
         ActivityCompat.OnRequestPermissionsResultCallback {
     /**
@@ -43,7 +44,8 @@ public class CheckPermissionsActivity extends AppCompatActivity
     /**
      * 判断是否需要检测，防止不停的弹框
      */
-    private boolean isNeedCheck = true;
+    protected boolean isNeedCheck = true;
+    protected boolean isDialogShowing = false;
 
     @Override
     protected void onResume() {
@@ -61,7 +63,17 @@ public class CheckPermissionsActivity extends AppCompatActivity
                     needRequestPermissonList.toArray(
                             new String[needRequestPermissonList.size()]),
                     PERMISSON_REQUESTCODE);
+        } else {
+            //没有需要申请的权限。则进入主页面
+            noPermissionsRequest();
         }
+    }
+
+    /**
+     * 检查权限后，没有需要申请的权限就进入首页
+     */
+    protected void noPermissionsRequest() {
+
     }
 
     /**
@@ -101,15 +113,21 @@ public class CheckPermissionsActivity extends AppCompatActivity
     }
 
     @Override
-    public void onRequestPermissionsResult(int requestCode,
-                                           String[] permissions, int[] paramArrayOfInt) {
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         if (requestCode == PERMISSON_REQUESTCODE) {
-            if (!verifyPermissions(paramArrayOfInt)) {
+            if (!verifyPermissions(grantResults)) {
                 showMissingPermissionDialog();
                 isNeedCheck = false;
+            } else {
+                startLocationWork();
             }
         }
     }
+
+    /**
+     * 权限申请完开始工作
+     */
+    public abstract void startLocationWork();
 
     /**
      * 显示提示信息
@@ -117,6 +135,7 @@ public class CheckPermissionsActivity extends AppCompatActivity
      * @since 2.5.0
      */
     private void showMissingPermissionDialog() {
+        isDialogShowing = true;
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle(R.string.notifyTitle);
         builder.setMessage(R.string.notifyMsg);
